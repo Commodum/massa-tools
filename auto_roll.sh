@@ -21,14 +21,16 @@
 ##          0 * * * * cd /home/xxx/massa/massa-client && ./auto_roll.sh [MASSA ADDRESS] >> /home/xxx/massa/massa-client/auto_roll.log
 #######################################################
 address=$1
-massa_client_path='~/massa/target/release/massa-client'
+massa_client_path='/home/ian/massa-binaries/versions/current/massa/massa-client'
+massa_wallet_location='/home/ian/massa-binaries/wallets/'
 roll_price=100
 
 ## Read in the Wallet Password
 . wallet_password
 
 ## Get the addresses from the wallet
-wallet=$(eval "$massa_client_path wallet_info -j -p \"$WALLET_PASSWORD\"")
+cd $massa_client_path
+wallet=$(eval "./massa-client wallet_info --json --wallet \"$massa_wallet_location\" --pwd \"$WALLET_PASSWORD\"")
 
 ## extract the balance for the account from the wallet
 final_price=$(echo $wallet | jq ".$address.address_info.final_balance" | tr -d '"')
@@ -36,11 +38,13 @@ final_price=$(echo $wallet | jq ".$address.address_info.final_balance" | tr -d '
 ## calculate how many rolls we can buy
 rolls=$(bc -l <<<"scale=0; $final_price/$roll_price")
 
-## If we can afford some, buy some rolls
+## If we can afford some, buy some wallets
 current_date_time=$(date --utc)
 if [ "$rolls" -gt 0 ]; then
+        #echo -e "${current_date_time}: Balance: ${final_price}"
+        #echo -e "${current_date_time}: Buyable: ${rolls}"
         echo -e "${current_date_time}: ${address} : Balance ${final_price} : Buyable ${rolls}"
-        echo -e $(eval "$massa_client_path buy_rolls -p \"$WALLET_PASSWORD\" ${address} ${rolls} 0")
+        echo -e $(eval "./massa-client buy_rolls --wallet \"$massa_wallet_location\" --pwd \"$WALLET_PASSWORD\" ${address} ${rolls} 0")
 else
         echo -e "${current_date_time}: ${address} : Balance ${final_price}"
 fi
